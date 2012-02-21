@@ -1,0 +1,10 @@
+I am writting wrappings for oblitum's Interception ( https://github.com/oblitum/Interception )
+So that it can be used effortlessly in python
+
+As it is, its not complete and for all I know it may be completely wrong.
+
+To do:
+
+Write a better readme
+Test if all the exposed functions work as they are supposed to (possibly fix them)
+Possibly encapsulate the functions a bit more in order to make their use feel more like python
