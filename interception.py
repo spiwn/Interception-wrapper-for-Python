@@ -142,61 +142,85 @@ def stroke2MouseStroke( stroke, dest = None ):
 
 Stroke = c_ushort * sizeof ( MouseStroke )
 
-create_context              = interceptionDll.interception_create_context
-create_context.argtypes     = []
-create_context.restype      = Context
+create_context          = interceptionDll.interception_create_context
+create_context.argtypes = []
+create_context.restype  = Context
 
-destroy_context             = interceptionDll.interception_destroy_context
-destroy_context.argtypes    = [Context]
-destroy_context.restype     = c_void_p
+destroy_context         = interceptionDll.interception_destroy_context
+destroy_context.argtypes= [Context]
+destroy_context.restype = c_void_p
 
-get_precedence              = interceptionDll.interception_get_precedence
-get_precedence.argtypes     = [Context, Device]
-get_precedence.restype      = Precedence
+get_precedence          = interceptionDll.interception_get_precedence
+get_precedence.argtypes = [Context, Device]
+get_precedence.restype  = Precedence
 
-set_precedence              = interceptionDll.interception_set_precedence
-set_precedence.argtypes     = [Context, Device, Precedence]
-set_precedence.restype      = c_void_p
+set_precedence          = interceptionDll.interception_set_precedence
+set_precedence.argtypes = [Context, Device, Precedence]
+set_precedence.restype  = c_void_p
 
-get_filter                  = interceptionDll.interception_get_filter
-get_filter.argtypes         = [Context, Device]
-get_filter.restype          = Filter
+get_filter              = interceptionDll.interception_get_filter
+get_filter.argtypes     = [Context, Device]
+get_filter.restype      = Filter
 
-set_filter                  = interceptionDll.interception_set_filter
-set_filter.argtypes         = [Context, Predicate, Filter]
-set_filter.restype          = c_void_p
+set_filter              = interceptionDll.interception_set_filter
+set_filter.argtypes     = [Context, Predicate, Filter]
+set_filter.restype      = c_void_p
 
-wait                        = interceptionDll.interception_wait
-wait.argtypes               = [Context]
-wait.restype                = Device
+wait                    = interceptionDll.interception_wait
+wait.argtypes           = [Context]
+wait.restype            = Device
 
-wait_with_timeout           = interceptionDll.interception_wait_with_timeout
-wait_with_timeout           = [Context, c_ulong]
-wait_with_timeout           = Device
+wait_with_timeout       = interceptionDll.interception_wait_with_timeout
+wait_with_timeout       = [Context, c_ulong]
+wait_with_timeout       = Device
 
-send_proto                  = interceptionDll.interception_send
-send_proto.argtypes         = [Context, Device, Stroke, c_uint]
-send_proto.restype          = c_int
+send_proto              = interceptionDll.interception_send
+send_proto.argtypes     = [Context, Device, Stroke, c_uint]
+send_proto.restype      = c_int
 
 __temp_Stroke = Stroke()
-def send( con, dev, stroke, nstroke ):
+
+def send( context, device, stroke, nstroke ):
     if isinstance( stroke, Stroke ):
-        return send_proto( con, dev, stroke, nstroke)
+        return send_proto( context, device, stroke, nstroke)
     if isinstance( stroke, KeyStroke ) or isinstance( stroke, MouseStroke ):
         memmove( byref( __temp_Stroke ), byref( stroke ), sizeof( stroke ))
-        return send_proto( con, dev, __temp_Stroke, nstroke )
+        return send_proto( context, device, __temp_Stroke, nstroke )
     raise TypeError( "Argument 3. Expected <'Stroke'>, <'KeyStroke'> or <'MouseStroke'>, got {0} instead.".format( type( stroke ) ) )
 
-receive                     = interceptionDll.interception_receive
-receive.argtypes            = [Context, Device, Stroke, c_uint]
-receive.restype             = c_int
+receive                 = interceptionDll.interception_receive
+receive.argtypes        = [ Context, Device, Stroke, c_uint ]
+receive.restype         = c_int
 
-get_hardware_id             = interceptionDll.interception_get_hardware_id
-get_hardware_id.argtypes    = [Context, Device, c_void_p, c_uint]
-get_hardware_id.restype     = c_uint
+get_hardware_id_proto           = interceptionDll.interception_get_hardware_id
+get_hardware_id_proto.argtypes  = [ Context, Device, c_void_p, c_uint ]
+get_hardware_id_proto.restype   = c_uint
 
-is_invalid                  = Predicate(interceptionDll.interception_is_invalid)
+def wszarray_to_list( array ):
+    result = []
+    offset = 0
+    while offset < sizeof( array ):
+        part = wstring_at( addressof( array ) + offset * 2 )
+        if part:
+            result.append( part )
+            offset += len( part )+1
+        else:
+            break
+    return result
 
-is_keyboard                 = Predicate( interceptionDll.interception_is_keyboard)
+__hardware_Id_Data = [ create_unicode_buffer( 300 ), 300 ]
 
-is_mouse                    = Predicate(interceptionDll.interception_is_mouse)
+def get_hardware_id ( context, device, max_size = 0):
+    if max_size > __hardware_Id_Data[ 1 ]:
+        __hardware_Id_Data[ 1 ] = max_size
+        __hardware_Id_Data[ 0 ] = create_unicode_buffer( max_size )
+    lenght = get_hardware_id_proto( context, device, __hardware_Id_Data[ 0 ], __hardware_Id_Data[ 1 ] )
+    if lenght > 0:
+        return wszarray_to_list( __hardware_Id_Data[ 0 ])
+    return None
+
+is_invalid      = Predicate( interceptionDll.interception_is_invalid )
+
+is_keyboard     = Predicate( interceptionDll.interception_is_keyboard )
+
+is_mouse        = Predicate( interceptionDll.interception_is_mouse )
