@@ -20,7 +20,7 @@ def testInterception():
     global context
     stroke = Stroke()
     context = create_context()
-    set_filter( context, is_keyboard, FILTER_KEY_ALL)
+    set_filter( context, is_keyboard, FILTER_KEY_DOWN | FILTER_KEY_UP )
     device = wait( context )
     keyStroke = KeyStroke()
     while ( receive ( context, device, stroke,1)>0 ):
