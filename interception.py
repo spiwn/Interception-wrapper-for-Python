@@ -138,7 +138,7 @@ def stroke2MouseStroke( stroke, dest = None ):
         memmove( byref( result ), byref( stroke ), sizeof( KeyStroke ) )
         return result
     else:
-        return memmove( byref( dest ), byref( stroke ), sizeof( result ) )
+        return memmove( byref( dest ), byref( stroke ), sizeof( MouseStroke ) )
 
 Stroke = c_ushort * sizeof ( MouseStroke )
 
