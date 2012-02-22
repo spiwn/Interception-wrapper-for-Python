@@ -18,11 +18,11 @@ from ctypes import *
 
 interceptionDll = cdll.interception
 
-#INTERCEPTION_MAX_KEYBOARD   = 10
-#INTERCEPTION_MAX_MOUSE      = 10
-#INTERCEPTION_MAX_DEVICE     = INTERCEPTION_MAX_KEYBOARD + INTERCEPTION_MAX_MOUSE
-#INTERCEPTION_KEYBOARD       = lambda index: index+1
-#INTERCEPTION_MOUSE          = lambda index: INTERCEPTION_MAX_KEYBOARD + index + 1
+MAX_KEYBOARD   = 10
+MAX_MOUSE      = 10
+MAX_DEVICE     = MAX_KEYBOARD + MAX_MOUSE
+KEYBOARD       = lambda index: index+1
+MOUSE          = lambda index: MAX_KEYBOARD + index + 1
 
 class Context( c_void_p ):
     pass
