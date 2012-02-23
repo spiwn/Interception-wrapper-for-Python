@@ -33,7 +33,7 @@ MAX_DEVICE     = MAX_KEYBOARD + MAX_MOUSE
 KEYBOARD       = lambda index: index+1
 MOUSE          = lambda index: MAX_KEYBOARD + index + 1
 
-class Context( c_void_p ):
+class ContextType( c_void_p ):
     pass
 class Device( c_int ):
     pass
@@ -183,44 +183,44 @@ Stroke = c_ushort * sizeof ( MouseStroke )
 
 create_context          = interceptionDll.interception_create_context
 create_context.argtypes = []
-create_context.restype  = Context
+create_context.restype  = ContextType
 
 destroy_context         = interceptionDll.interception_destroy_context
-destroy_context.argtypes= [Context]
+destroy_context.argtypes= [ ContextType ]
 destroy_context.restype = c_void_p
 
 get_precedence          = interceptionDll.interception_get_precedence
-get_precedence.argtypes = [Context, Device]
+get_precedence.argtypes = [ ContextType, Device ]
 get_precedence.restype  = Precedence
 
 set_precedence          = interceptionDll.interception_set_precedence
-set_precedence.argtypes = [Context, Device, Precedence]
+set_precedence.argtypes = [ ContextType, Device, Precedence ]
 set_precedence.restype  = c_void_p
 
 get_filter              = interceptionDll.interception_get_filter
-get_filter.argtypes     = [Context, Device]
+get_filter.argtypes     = [ ContextType, Device ]
 get_filter.restype      = Filter
 
 set_filter_proto              = interceptionDll.interception_set_filter
-set_filter_proto.argtypes     = [Context, PredicateType, Filter]
+set_filter_proto.argtypes     = [ ContextType, PredicateType, Filter ]
 set_filter_proto.restype      = c_void_p
 
-def set_filter(cont,pred,filt):
-    if isinstance(pred,PredicateType):
-        return set_filter_proto(cont,pred,filt)
+def set_filter( cont, pred, filt ):
+    if isinstance( pred, PredicateType ):
+        return set_filter_proto( cont, pred, filt )
     else:
-        return set_filter_proto(cont,Predicate(pred),filt)
+        return set_filter_proto( cont, Predicate( pred ), filt )
 
 wait                    = interceptionDll.interception_wait
-wait.argtypes           = [Context]
+wait.argtypes           = [ ContextType ]
 wait.restype            = Device
 
 wait_with_timeout       = interceptionDll.interception_wait_with_timeout
-wait_with_timeout       = [Context, c_ulong]
+wait_with_timeout       = [ ContextType, c_ulong ]
 wait_with_timeout       = Device
 
 send_proto              = interceptionDll.interception_send
-send_proto.argtypes     = [Context, Device, Stroke, c_uint]
+send_proto.argtypes     = [ ContextType, Device, Stroke, c_uint ]
 send_proto.restype      = c_int
 
 __temp_Stroke = Stroke()
@@ -234,11 +234,11 @@ def send( context, device, stroke, nstroke ):
     raise TypeError( "Argument 3. Expected <'Stroke'>, <'KeyStroke'> or <'MouseStroke'>, got {0} instead.".format( type( stroke ) ) )
 
 receive                 = interceptionDll.interception_receive
-receive.argtypes        = [ Context, Device, Stroke, c_uint ]
+receive.argtypes        = [ ContextType, Device, Stroke, c_uint ]
 receive.restype         = c_int
 
 get_hardware_id_proto           = interceptionDll.interception_get_hardware_id
-get_hardware_id_proto.argtypes  = [ Context, Device, c_void_p, c_uint ]
+get_hardware_id_proto.argtypes  = [ ContextType, Device, c_void_p, c_uint ]
 get_hardware_id_proto.restype   = c_uint
 
 def memoryChunk2Strings( string, lenght = 0 ):
