@@ -284,5 +284,59 @@ is_keyboard     = Predicate( interceptionDll.interception_is_keyboard )
 
 is_mouse        = Predicate( interceptionDll.interception_is_mouse )
 
+#-------------------------------------------------------------------------
+
+
+class Context():
+    def __enter__(self):
+        self.context = create_context()
+        self.stroke = Stroke()
+        return self
+        
+    def __exit__( self, *exc ):
+        destroy_context( self.context )
+
+    def set_filter( self, predicate, filt ):
+        return set_filter( self.context, predicate, filt )
+
+    def get_filter( self, device ):
+        return get_filter( self.context, device )
+
+    def wait( self, timeout = 0):
+        if timeout:
+            self.device = wait_with_timeout( self.condext, timeout )
+        else:
+            self.device = wait( self.context )
+        return receive( self.context, self.device, self.stroke, 1 )
+
+    def send( self, device, stroke, nStroke = 1 ):
+        return send( self.context, device, stroke, nStroke )
+
+    def set_precedence( self, device, precedence):
+        return set_precedence( self.context, device, precedence )
+
+    def get_precedence( self, device):
+        return get_precedence( self.context, device )
+
+    def get_hardware_id ( self, device, max_size = 0):
+        return get_hardware_id( self.context, device, max_size )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
