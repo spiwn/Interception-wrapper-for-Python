@@ -1,3 +1,5 @@
+#
+#
 # Python wrappings for
 #   Interception by oblitum:
 #       http://oblita.com/Interception
@@ -220,7 +222,7 @@ __temp_Stroke = Stroke()
 def send( context, device, stroke, nstroke ):
     if isinstance( stroke, Stroke ):
         return send_proto( context, device, stroke, nstroke)
-    if isinstance( stroke, KeyStroke ) or isinstance( stroke, MouseStroke ):
+    if isinstance( stroke, ( KeyStroke, MouseStroke ) ):
         memmove( byref( __temp_Stroke ), byref( stroke ), sizeof( stroke ))
         return send_proto( context, device, __temp_Stroke, nstroke )
     raise TypeError( "Argument 3. Expected <'Stroke'>, <'KeyStroke'> or <'MouseStroke'>, got {0} instead.".format( type( stroke ) ) )
