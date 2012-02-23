@@ -21,6 +21,12 @@ from ctypes import _CFuncPtr
 
 interceptionDll = cdll.interception
 
+#
+# Exposing(emulating) Interception's functions, types and constants
+# ( note, the "interception_" prefix that all the identifiers had is obsolete as when you import this module
+#   you would access the fields either with "interception." (or you will know what your are doing) )
+#
+
 MAX_KEYBOARD   = 10
 MAX_MOUSE      = 10
 MAX_DEVICE     = MAX_KEYBOARD + MAX_MOUSE
