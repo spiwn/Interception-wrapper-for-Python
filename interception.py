@@ -68,11 +68,11 @@ def Predicate ( func ):
         raise TypeError("Wrong type for a Predicate ( should be something like a function")
     predFunc = PredicateCache.get( hashValue , False )
     if not predFunc:
-        predFunc = PredicateType(func)
+        predFunc = PredicateType( func )
         PredicateCache [ hashValue ] = predFunc
     return predFunc
-        
-        
+
+
 KEY_DOWN             = 0x00
 KEY_UP               = 0x01
 KEY_E0               = 0x02
