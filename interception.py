@@ -15,6 +15,7 @@
 # this incomplete code
 
 from ctypes import *
+from ctypes import _CFuncPtr
 
 interceptionDll = cdll.interception
 
@@ -32,8 +33,38 @@ class Precedence( c_int ):
     pass
 class Filter( c_ushort ):
     pass
-Predicate = CFUNCTYPE( c_int, c_int )
 
+PredicateCache = {}
+
+class PredicateType():
+    def __init__( self, func ):
+        if isinstance(func, _CFuncPtr):
+            self._as_parameter_ = func
+            self._as_parameter_.argtypes = [ c_int ]
+            self._as_parameter_.restype = c_bool
+        elif callable( func ):
+            self._as_parameter_ = CFUNCTYPE( c_bool, c_int )( func )
+        else:
+            raise TypeError
+    def from_param( self ):
+        return self._as_parameter_
+    def __call__( self, device ):
+        return self._as_parameter_( device )
+
+def Predicate ( func ):
+    if isinstance( func, _CFuncPtr ):
+        hashValue = id( func )
+    elif callable( func ):
+        hashValue = id( func )
+    else:
+        raise TypeError("Wrong type for a Predicate ( should be something like a function")
+    predFunc = PredicateCache.get( hashValue , False )
+    if not predFunc:
+        predFunc = PredicateType(func)
+        PredicateCache [ hashValue ] = predFunc
+    return predFunc
+        
+        
 KEY_DOWN             = 0x00
 KEY_UP               = 0x01
 KEY_E0               = 0x02
@@ -162,9 +193,15 @@ get_filter              = interceptionDll.interception_get_filter
 get_filter.argtypes     = [Context, Device]
 get_filter.restype      = Filter
 
-set_filter              = interceptionDll.interception_set_filter
-set_filter.argtypes     = [Context, Predicate, Filter]
-set_filter.restype      = c_void_p
+set_filter_proto              = interceptionDll.interception_set_filter
+set_filter_proto.argtypes     = [Context, PredicateType, Filter]
+set_filter_proto.restype      = c_void_p
+
+def set_filter(cont,pred,filt):
+    if isinstance(pred,PredicateType):
+        return set_filter_proto(cont,pred,filt)
+    else:
+        return set_filter_proto(cont,Predicate(pred),filt)
 
 wait                    = interceptionDll.interception_wait
 wait.argtypes           = [Context]
