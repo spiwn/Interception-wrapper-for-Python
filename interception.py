@@ -147,49 +147,67 @@ MOUSE_ATTRIBUTES_CHANGED = 0x004
 MOUSE_MOVE_NOCOALESCE    = 0x008
 MOUSE_TERMSRV_SRC_SHADOW = 0x100
 
-class MouseStroke( Structure ):
-    _fields_ = [
-        ( "state", c_ushort ),
-        ( "flags",     c_ushort ),
-        ( "rolling",     c_short ),
-        ( "x",  c_int ),
-        ( "y",  c_int ),
-        ( "information", c_uint )
-    ]
+strokeValueMap = { 'state' : ( 0, ( -1, 0 ), ( 0, 1 ) ),
+                   'information' : ( 0, ( 6, 8 ), ( 1, 3 ) ),
+                   'code' : ( 0, 0, ( -1, 0 ) ),
+                   'flags': ( 0, ( 0, 1 ), 0 ),
+                   'rolling': ( 0, ( 1, 2 ), 0 ),
+                   'x': ( 0, ( 2, 4 ), 0 ),
+                   'y': ( 0, ( 4, 6 ), 0 ) }
 
-class KeyStroke( Structure ):
-    _fields_ = [
-        ( "code", c_ushort ),
-        ( "state",     c_ushort ),
-        ( "information",     c_uint )
-    ]
-
-def stroke2KeyStroke( stroke, dest = None ):
-    if not dest:
-        result = KeyStroke()
-        memmove( byref( result ), byref( stroke ), sizeof( result ) )
-        return result
-    else:
-        return memmove( byref( dest ), stroke, sizeof( KeyStroke ))
-
-def stroke2MouseStroke( stroke, dest = None ):
-    if not dest:
-        result = MouseStroke()
-        memmove( byref( result ), byref( stroke ), sizeof( KeyStroke ) )
-        return result
-    else:
-        return memmove( byref( dest ),  stroke, sizeof( MouseStroke ) )
-
-class Stroke ():
-    def __init__( self ):
-        self._as_parameter_ = ( c_ushort * sizeof ( MouseStroke ) ) ()
+class Stroke():
+    mouseStroke = 1
+    keyStroke = 2
+    undefined = 0
+    def __init__( self, initial = None ):
+        if initial:
+            self._as_parameter_ = ( c_ushort * 9 ) (*initial)
+        else:
+            self._as_parameter_ = ( c_ushort * 9 ) ()
+        self.typ = Stroke.undefined
+        
     def from_param( self ):
         return self._as_parameter_
-    def __getitem__( self, index):
-        return self.data[ index ]
-    def __setitem__( self, index, value):
-        self.data[ index ] = value
 
+    def __getitem__( self, index):
+        return self._as_parameter_[ index ]
+
+    def __setitem__( self, index, value):
+        self._as_parameter_[ index ] = value
+    
+    def settype( self, typ ):
+        if not isinstance( typ, int ):
+            raise TypeError
+        if not 0 <= typ <= 2:
+            raise ValueError
+        self.typ = typ
+        
+    def __getattr__( self, key ):
+        span = strokeValueMap.get( key, 0 )
+        if span:
+            if not self.typ:
+                raise AttributeError
+            span = span[ self.typ ]
+            result = 0
+            for i in range( span[ 1 ], span[ 0 ], -1 ):
+                result = ( result << 16 ) + self._as_parameter_[ i ]
+            return result
+        else:
+            raise AttributeError
+
+    def __setattr__( self, key, value ):
+        span = strokeValueMap.get( key, 0 )
+        if span:
+            if not self.typ:
+                raise AttributeError
+            span = span[ self.typ ]
+            for i in range( span[ 0 ]+1, span[ 1 ]+1 ):
+                self._as_parameter_[ i ] = value & 65535
+                value = value >> 16
+            if value>0:
+                raise ValueError
+        else:
+            return super().__setattr__( key, value )
 
 create_context          = interceptionDll.interception_create_context
 create_context.argtypes = []
@@ -229,19 +247,9 @@ wait_with_timeout       = interceptionDll.interception_wait_with_timeout
 wait_with_timeout       = [ ContextType, c_ulong ]
 wait_with_timeout       = Device
 
-send_proto              = interceptionDll.interception_send
-send_proto.argtypes     = [ ContextType, Device, Stroke, c_uint ]
-send_proto.restype      = c_int
-
-__temp_Stroke = Stroke()
-
-def send( context, device, stroke, nstroke ):
-    if isinstance( stroke, Stroke ):
-        return send_proto( context, device, stroke, nstroke)
-    if isinstance( stroke, ( KeyStroke, MouseStroke ) ):
-        memmove( __temp_Stroke, byref( stroke ), sizeof( stroke ))
-        return send_proto( context, device, __temp_Stroke, nstroke )
-    raise TypeError( "Argument 3. Expected <'Stroke'>, <'KeyStroke'> or <'MouseStroke'>, got {0} instead.".format( type( stroke ) ) )
+send              = interceptionDll.interception_send
+send.argtypes     = [ ContextType, Device, Stroke, c_uint ]
+send.restype      = c_int
 
 receive                 = interceptionDll.interception_receive
 receive.argtypes        = [ ContextType, Device, Stroke, c_uint ]
@@ -302,12 +310,17 @@ class Context():
     def get_filter( self, device ):
         return get_filter( self.context, device )
 
-    def wait( self, timeout = 0):
+    def wait( self, timeout = 0 ):
         if timeout:
             self.device = wait_with_timeout( self.condext, timeout )
         else:
             self.device = wait( self.context )
-        return receive( self.context, self.device, self.stroke, 1 )
+        result = receive( self.context, self.device, self.stroke, 1 )
+        if is_keyboard( self.device ):
+            self.stroke.settype( self.stroke.keyStroke )
+        elif is_mouse( self.device ):
+            self.stroke.settype( self.stroke.mouseStroke )
+        return result
 
     def send( self, device, stroke, nStroke = 1 ):
         return send( self.context, device, stroke, nStroke )
