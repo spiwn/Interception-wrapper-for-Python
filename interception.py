@@ -233,12 +233,6 @@ set_filter_proto              = interceptionDll.interception_set_filter
 set_filter_proto.argtypes     = [ ContextType, PredicateType, Filter ]
 set_filter_proto.restype      = c_void_p
 
-def set_filter( cont, pred, filt ):
-    if isinstance( pred, PredicateType ):
-        return set_filter_proto( cont, pred, filt )
-    else:
-        return set_filter_proto( cont, Predicate( pred ), filt )
-
 wait                    = interceptionDll.interception_wait
 wait.argtypes           = [ ContextType ]
 wait.restype            = Device
@@ -255,9 +249,17 @@ receive                 = interceptionDll.interception_receive
 receive.argtypes        = [ ContextType, Device, Stroke, c_uint ]
 receive.restype         = c_int
 
-get_hardware_id_proto           = interceptionDll.interception_get_hardware_id
-get_hardware_id_proto.argtypes  = [ ContextType, Device, c_void_p, c_uint ]
-get_hardware_id_proto.restype   = c_uint
+get_hardware_id           = interceptionDll.interception_get_hardware_id
+get_hardware_id.argtypes  = [ ContextType, Device, c_void_p, c_uint ]
+get_hardware_id.restype   = c_uint
+
+is_invalid      = Predicate( interceptionDll.interception_is_invalid )
+
+is_keyboard     = Predicate( interceptionDll.interception_is_keyboard )
+
+is_mouse        = Predicate( interceptionDll.interception_is_mouse )
+
+#-------------------------------------------------------------------------
 
 def memoryChunk2Strings( string, lenght = 0 ):
     if lenght:
@@ -275,25 +277,7 @@ def memoryChunk2Strings( string, lenght = 0 ):
             break
     return result
 
-__hardware_Id_Data = [ create_unicode_buffer( 300 ), 300 ]
-
-def get_hardware_id ( context, device, max_size = 0):
-    if max_size > __hardware_Id_Data[ 1 ]:
-        __hardware_Id_Data[ 1 ] = max_size
-        __hardware_Id_Data[ 0 ] = create_unicode_buffer( max_size )
-    lenght = get_hardware_id_proto( context, device, __hardware_Id_Data[ 0 ], __hardware_Id_Data[ 1 ] )
-    if lenght > 0:
-        return memoryChunk2Strings( __hardware_Id_Data[ 0 ], lenght)
-    return None
-
-is_invalid      = Predicate( interceptionDll.interception_is_invalid )
-
-is_keyboard     = Predicate( interceptionDll.interception_is_keyboard )
-
-is_mouse        = Predicate( interceptionDll.interception_is_mouse )
-
-#-------------------------------------------------------------------------
-
+hardware_Id_Data = [ create_unicode_buffer( 300 ), 300 ]
 
 class Context():
     def __enter__(self):
@@ -305,7 +289,10 @@ class Context():
         destroy_context( self.context )
 
     def set_filter( self, predicate, filt ):
-        return set_filter( self.context, predicate, filt )
+        if isinstance( predicate, PredicateType ):
+            return set_filter_proto( self.context, predicate, filt )
+        else:
+            return set_filter_proto( self.context, Predicate( predicate ), filt )
 
     def get_filter( self, device ):
         return get_filter( self.context, device )
@@ -332,24 +319,10 @@ class Context():
         return get_precedence( self.context, device )
 
     def get_hardware_id ( self, device, max_size = 0):
-        return get_hardware_id( self.context, device, max_size )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        if max_size > hardware_Id_Data[ 1 ]:
+            hardware_Id_Data[ 1 ] = max_size
+            hardware_Id_Data[ 0 ] = create_unicode_buffer( max_size )
+        lenght = get_hardware_id( self.context, device, hardware_Id_Data[ 0 ], hardware_Id_Data[ 1 ] )
+        if lenght > 0:
+            return memoryChunk2Strings( hardware_Id_Data[ 0 ], lenght)
+        return None
