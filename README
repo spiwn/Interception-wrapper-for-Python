@@ -4,7 +4,7 @@ So that it can be used effortlessly in python
 As it is, its not complete and for all I know it may be completely wrong.
 
 
-This branch aim at making the use of interception more python friendly and moving more of the
+This branch aims at making the use of interception more python friendly and moving more of the
 mechanincs under the hood.
 
 
