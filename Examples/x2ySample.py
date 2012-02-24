@@ -8,7 +8,7 @@
 # Press Escape to terminate
 
 import changePriority # https://gist.github.com/1876666
-from interception import *
+import interception
 
 changePriority.IncreasePriority( times = 2 )
 
@@ -17,34 +17,18 @@ SCANCODE_Y      = 0x15
 SCANCODE_ESC    = 0x01
 
 def testInterception():
-    global context
-    stroke = Stroke()
-    context = create_context()
-    set_filter( context, is_keyboard, FILTER_KEY_DOWN | FILTER_KEY_UP )
-    device = wait( context )
-    keyStroke = KeyStroke()
-    while ( receive ( context, device, stroke,1)>0 ):
-        if is_keyboard( device ):
-            stroke2KeyStroke( stroke, dest = keyStroke )
-            if keyStroke.code == SCANCODE_ESC:
+    with interception.Context() as context:
+        context.set_filter( interception.is_keyboard, interception.FILTER_KEY_DOWN | interception.FILTER_KEY_UP )
+        while ( context.wait() > 0 ):
+            if context.stroke.code == SCANCODE_ESC:
                 break
-
             # if 'x' is pressed/released - turn it to 'y'
-            if keyStroke.code == SCANCODE_X: keyStroke.code = SCANCODE_Y
-
+            if context.stroke.code == SCANCODE_X: context.stroke.code = SCANCODE_Y
+            
             #uncomment the next line to also turn 'y's in to 'x's
-            #elif keyStroke.code == SCANCODE_Y: keyStroke.code = SCANCODE_X
+            #elif context.stroke.code == SCANCODE_Y: context.stroke.code = SCANCODE_X
 
-            send(context,device, keyStroke,1)
-        else:
-            send(context,device, stroke,1)
-        device=wait(context)
-    destroy_context(context)
+            context.send( context.device, context.stroke )
 
 if __name__=='__main__':
-    try:
-        testInterception()
-    except Exception as e:
-        print('An Exception occured\n',e)
-        destroy_context(context)
-        raise e
+    testInterception()

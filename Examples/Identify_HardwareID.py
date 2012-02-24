@@ -10,40 +10,26 @@
 # Press Escape to terminate
 
 import changePriority # https://gist.github.com/1876666
-from interception import *
+import interception
 
 changePriority.IncreasePriority( times = 2 )
 
 SCANCODE_ESC    = 0x01
 
 def testInterception():
-    global context
-    stroke = Stroke()
-    keyStroke = KeyStroke()
-    context = create_context()
-    set_filter( context, is_keyboard, FILTER_KEY_DOWN | FILTER_KEY_UP )
-    set_filter( context, is_mouse, FILTER_MOUSE_LEFT_BUTTON_DOWN )
-    device = wait( context )
-    while ( receive ( context, device, stroke,1)>0 ):
-        if is_keyboard( device ):
-            stroke2KeyStroke( stroke, dest = keyStroke )
-            print( "K", device.value - KEYBOARD( 0 ) )
-            print( get_hardware_id( context, device ) )
-            if keyStroke.code == SCANCODE_ESC:
-                break
-            send( context, device, stroke, 1 )
-        else:
-            if is_mouse( device ):
-                print( "M", device.value - MOUSE( 0 ) )
-                print( get_hardware_id( context, device ) )
-            send( context, device, stroke, 1)
-        device = wait( context )
-    destroy_context( context )
+    with interception.Context() as context:
+        context.set_filter( interception.is_keyboard, interception.FILTER_KEY_DOWN | interception.FILTER_KEY_UP )
+        context.set_filter( interception.is_mouse, interception.FILTER_MOUSE_LEFT_BUTTON_DOWN )
+        while ( context.wait() > 0 ):
+            if interception.is_keyboard( context.device ):
+                print( "K", context.device.value - interception.KEYBOARD( 0 ) )
+                if context.stroke.code == SCANCODE_ESC:
+                    break
+            else:
+                if interception.is_mouse( context.device ):
+                    print( "M", context.device.value - interception.MOUSE( 0 ) )
+            print( context.get_hardware_id( context.device ))
+            context.send( context.device, context.stroke)
 
 if __name__=='__main__':
-    try:
-        testInterception()
-    except Exception as e:
-        print('An Exception occured\n',e)
-        destroy_context(context)
-        raise e
+    testInterception()
