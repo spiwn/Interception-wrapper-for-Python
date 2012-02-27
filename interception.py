@@ -160,20 +160,34 @@ class KeyStroke( Structure ):
 def stroke2KeyStroke( stroke, dest = None ):
     if not dest:
         result = KeyStroke()
-        memmove( byref( result ), byref( stroke ), sizeof( result ) )
+        memmove( byref( result ), stroke, sizeof( result ) )
         return result
     else:
-        return memmove( byref( dest ), byref( stroke ), sizeof( KeyStroke ))
+        return memmove( byref( dest ), stroke, sizeof( KeyStroke ))
 
 def stroke2MouseStroke( stroke, dest = None ):
     if not dest:
         result = MouseStroke()
-        memmove( byref( result ), byref( stroke ), sizeof( KeyStroke ) )
+        memmove( byref( result ), stroke, sizeof( MouseStroke ) )
         return result
     else:
-        return memmove( byref( dest ), byref( stroke ), sizeof( MouseStroke ) )
+        return memmove( byref( dest ), stroke, sizeof( MouseStroke ) )
 
-Stroke = c_ushort * sizeof ( MouseStroke )
+class Stroke ():
+    def __init__( self, initial = None ):
+        if initial:
+            self._as_parameter_ = ( c_ushort * ( sizeof ( MouseStroke ) // sizeof( c_ushort ) ) ) (*initial)
+        else:
+            self._as_parameter_ = ( c_ushort * ( sizeof ( MouseStroke ) // sizeof( c_ushort ) ) ) ()
+
+    def from_param( self ):
+        return self._as_parameter_
+
+    def __getitem__( self, index):
+        return self.data[ index ]
+
+    def __setitem__( self, index, value):
+        self.data[ index ] = value
 
 create_context          = interceptionDll.interception_create_context
 create_context.argtypes = []
@@ -223,7 +237,7 @@ def send( context, device, stroke, nstroke ):
     if isinstance( stroke, Stroke ):
         return send_proto( context, device, stroke, nstroke)
     if isinstance( stroke, ( KeyStroke, MouseStroke ) ):
-        memmove( byref( __temp_Stroke ), byref( stroke ), sizeof( stroke ))
+        memmove( __temp_Stroke, byref( stroke ), sizeof( stroke ))
         return send_proto( context, device, __temp_Stroke, nstroke )
     raise TypeError( "Argument 3. Expected <'Stroke'>, <'KeyStroke'> or <'MouseStroke'>, got {0} instead.".format( type( stroke ) ) )
 
