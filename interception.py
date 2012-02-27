@@ -147,23 +147,26 @@ MOUSE_ATTRIBUTES_CHANGED = 0x004
 MOUSE_MOVE_NOCOALESCE    = 0x008
 MOUSE_TERMSRV_SRC_SHADOW = 0x100
 
-strokeValueMap = { 'state' : ( 0, ( -1, 0 ), ( 0, 1 ) ),
-                   'information' : ( 0, ( 6, 8 ), ( 1, 3 ) ),
-                   'code' : ( 0, 0, ( -1, 0 ) ),
-                   'flags': ( 0, ( 0, 1 ), 0 ),
-                   'rolling': ( 0, ( 1, 2 ), 0 ),
-                   'x': ( 0, ( 2, 4 ), 0 ),
-                   'y': ( 0, ( 4, 6 ), 0 ) }
+strokeValueMap = { 'state' : ( 0, ( -1, 0, 0 ), ( 0, 1, 0 ), ),
+                   'information' : ( 0, ( 6, 8, 0 ), ( 1, 3, 0 ) ),
+                   'code' : ( 0, 0, ( -1, 0, 0 ) ),
+                   'flags': ( 0, ( 0, 1, 0 ), 0 ),
+                   'rolling': ( 0, ( 1, 2, 1 ), 0 ),
+                   'x': ( 0, ( 3, 5, 1 ), 0 ),
+                   'y': ( 0, ( 5, 7, 1 ), 0 ) }
+
+unsignedHelper1 = [0,2**16,2**32]
+unsignedHelper2 = [0,2**15,2**31]
 
 class Stroke():
-    mouseStroke = 1
-    keyStroke = 2
+    MouseStroke = 1
+    KeyStroke = 2
     undefined = 0
     def __init__( self, initial = None ):
         if initial:
-            self._as_parameter_ = ( c_ushort * 9 ) (*initial)
+            self._as_parameter_ = ( c_ushort * 10 ) (*initial)
         else:
-            self._as_parameter_ = ( c_ushort * 9 ) ()
+            self._as_parameter_ = ( c_ushort * 10 ) ()
         self.typ = Stroke.undefined
         
     def from_param( self ):
@@ -191,6 +194,9 @@ class Stroke():
             result = 0
             for i in range( span[ 1 ], span[ 0 ], -1 ):
                 result = ( result << 16 ) + self._as_parameter_[ i ]
+            if span[ 2 ] and result > unsignedHelper2[ span[ 1 ] - span[ 0 ] ]:
+                result = result - unsignedHelper1[ span[ 1 ] - span[ 0 ] ]
+                pass
             return result
         else:
             raise AttributeError
@@ -201,10 +207,12 @@ class Stroke():
             if not self.typ:
                 raise AttributeError
             span = span[ self.typ ]
-            for i in range( span[ 0 ]+1, span[ 1 ]+1 ):
+            if span[ 2 ] and value < 0:
+                value = unsignedHelper1[ span[ 1 ] - span [ 0 ] ] + value
+            for i in range( span[ 0 ] + 1, span[ 1 ] + 1 ):
                 self._as_parameter_[ i ] = value & 65535
                 value = value >> 16
-            if value>0:
+            if value > 0:
                 raise ValueError
         else:
             return super().__setattr__( key, value )
@@ -304,9 +312,9 @@ class Context():
             self.device = wait( self.context )
         result = receive( self.context, self.device, self.stroke, 1 )
         if is_keyboard( self.device ):
-            self.stroke.settype( self.stroke.keyStroke )
+            self.stroke.settype( self.stroke.KeyStroke )
         elif is_mouse( self.device ):
-            self.stroke.settype( self.stroke.mouseStroke )
+            self.stroke.settype( self.stroke.MouseStroke )
         return result
 
     def send( self, device, stroke, nStroke = 1 ):
