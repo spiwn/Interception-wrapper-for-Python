@@ -148,7 +148,7 @@ MOUSE_MOVE_NOCOALESCE    = 0x008
 MOUSE_TERMSRV_SRC_SHADOW = 0x100
 
 strokeValueMap = { 'state' : ( 0, ( -1, 0, 0 ), ( 0, 1, 0 ), ),
-                   'information' : ( 0, ( 6, 8, 0 ), ( 1, 3, 0 ) ),
+                   'information' : ( 0, ( 7, 9, 0 ), ( 1, 3, 0 ) ),
                    'code' : ( 0, 0, ( -1, 0, 0 ) ),
                    'flags': ( 0, ( 0, 1, 0 ), 0 ),
                    'rolling': ( 0, ( 1, 2, 1 ), 0 ),
