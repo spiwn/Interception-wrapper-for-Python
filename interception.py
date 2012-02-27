@@ -249,11 +249,15 @@ get_hardware_id_proto           = interceptionDll.interception_get_hardware_id
 get_hardware_id_proto.argtypes  = [ Context, Device, c_void_p, c_uint ]
 get_hardware_id_proto.restype   = c_uint
 
-def wszarray_to_list( array ):
+def memoryChunk2Strings( string, lenght = 0 ):
+    if lenght:
+        limit = lenght
+    else:
+        limit = sizeof(string)
     result = []
     offset = 0
-    while offset < sizeof( array ):
-        part = wstring_at( addressof( array ) + offset * 2 )
+    while offset < sizeof( string ):
+        part = wstring_at( addressof( string ) + offset * 2 )
         if part:
             result.append( part )
             offset += len( part )+1
@@ -269,7 +273,7 @@ def get_hardware_id ( context, device, max_size = 0):
         __hardware_Id_Data[ 0 ] = create_unicode_buffer( max_size )
     lenght = get_hardware_id_proto( context, device, __hardware_Id_Data[ 0 ], __hardware_Id_Data[ 1 ] )
     if lenght > 0:
-        return wszarray_to_list( __hardware_Id_Data[ 0 ])
+        return memoryChunk2Strings( __hardware_Id_Data[ 0 ], lenght)
     return None
 
 is_invalid      = Predicate( interceptionDll.interception_is_invalid )
