@@ -155,22 +155,33 @@ strokeValueMap = { 'state' : ( 0, ( -1, 0, 0 ), ( 0, 1, 0 ), ),
                    'x': ( 0, ( 3, 5, 1 ), 0 ),
                    'y': ( 0, ( 5, 7, 1 ), 0 ) }
 
-unsignedHelper1 = [0,2**16,2**32]
-unsignedHelper2 = [0,2**15,2**31]
+unsignedHelper1 = ( 0, 2**16, 2**32 )
+unsignedHelper2 = ( 0, 2**15, 2**31 )
 
-class Stroke():
+class StrokeProto():
     MouseStroke = 1
     KeyStroke = 2
-    undefined = 0
-    def __init__( self, initial = None ):
-        if initial:
-            self._as_parameter_ = ( c_ushort * 10 ) (*initial)
-        else:
-            self._as_parameter_ = ( c_ushort * 10 ) ()
-        self.typ = Stroke.undefined
-        
+    Undefined = 0
+
     def from_param( self ):
         return self._as_parameter_
+
+class Stroke( StrokeProto ):
+    def __new__( klass, initial = None, arrayCount = 1, typ = StrokeProto.Undefined, param = None ):
+        if arrayCount == 1:
+            return super().__new__( klass, initial, arrayCount, typ, param )
+        if arrayCount > 1:
+            return StrokeArray( initial, arrayCount, typ )
+            
+    def __init__( self, initial = None, arrayCount = 1, typ = StrokeProto.Undefined, param = None ):
+        if param:
+            self._as_parameter_ = param
+        else:
+            if initial:
+                self._as_parameter_ = ( c_ushort * 10 ) ( *initial )
+            else:
+                self._as_parameter_ = ( c_ushort * 10 ) ()
+        self.typ = typ
 
     def __getitem__( self, index):
         return self._as_parameter_[ index ]
@@ -184,7 +195,7 @@ class Stroke():
         if not 0 <= typ <= 2:
             raise ValueError
         self.typ = typ
-        
+
     def __getattr__( self, key ):
         span = strokeValueMap.get( key, 0 )
         if span:
@@ -216,6 +227,22 @@ class Stroke():
                 raise ValueError
         else:
             return super().__setattr__( key, value )
+
+class StrokeArray( StrokeProto ):
+    def __init__(self, initial = None, size = 2, typ = StrokeProto.Undefined ):
+        if initial:
+            self._as_parameter_ = ( ( c_ushort * 10 ) * size ) ( *initial )
+        else:
+            self._as_parameter_ = ( ( c_ushort * 10 ) * size ) ()
+        self.members = [ Stroke( typ = typ, param = self._as_parameter_[ i ] ) for i in range( size ) ]
+    def settype( self, typ ):
+        for i in self.members:
+            i.settype( typ )
+    def __getitem__( self, index ):
+        return self.members[ index ]
+    def __setitem__( self, index, value ):
+        self.members[ index ] = value
+        self._as_parameter_[ index ] = value._as_parameter_
 
 create_context          = interceptionDll.interception_create_context
 create_context.argtypes = []
@@ -250,11 +277,11 @@ wait_with_timeout       = [ ContextType, c_ulong ]
 wait_with_timeout       = Device
 
 send              = interceptionDll.interception_send
-send.argtypes     = [ ContextType, Device, Stroke, c_uint ]
+send.argtypes     = [ ContextType, Device, StrokeProto, c_uint ]
 send.restype      = c_int
 
 receive                 = interceptionDll.interception_receive
-receive.argtypes        = [ ContextType, Device, Stroke, c_uint ]
+receive.argtypes        = [ ContextType, Device, StrokeProto, c_uint ]
 receive.restype         = c_int
 
 get_hardware_id           = interceptionDll.interception_get_hardware_id
@@ -288,9 +315,12 @@ def memoryChunk2Strings( string, lenght = 0 ):
 hardware_Id_Data = [ create_unicode_buffer( 300 ), 300 ]
 
 class Context():
-    def __enter__(self):
+    def __init__( self, size = 1):
         self.context = create_context()
-        self.stroke = Stroke()
+        self.stroke = Stroke( arrayCount = size )
+        self.size = size
+
+    def __enter__( self ):
         return self
         
     def __exit__( self, *exc ):
@@ -305,16 +335,19 @@ class Context():
     def get_filter( self, device ):
         return get_filter( self.context, device )
 
-    def wait( self, timeout = 0 ):
+    def wait( self, timeout = 0, nStroke = 1 ):
+        if self.size < nStroke:
+            self.stroke = Stroke ( arrayCount = nStroke )
+            self.size = nStroke
         if timeout:
             self.device = wait_with_timeout( self.condext, timeout )
         else:
             self.device = wait( self.context )
         result = receive( self.context, self.device, self.stroke, 1 )
         if is_keyboard( self.device ):
-            self.stroke.settype( self.stroke.KeyStroke )
+            self.stroke.settype( Stroke.KeyStroke )
         elif is_mouse( self.device ):
-            self.stroke.settype( self.stroke.MouseStroke )
+            self.stroke.settype( Stroke.MouseStroke )
         return result
 
     def send( self, device, stroke, nStroke = 1 ):
