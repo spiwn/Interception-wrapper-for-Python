@@ -272,9 +272,9 @@ wait                    = interceptionDll.interception_wait
 wait.argtypes           = [ ContextType ]
 wait.restype            = Device
 
-wait_with_timeout       = interceptionDll.interception_wait_with_timeout
-wait_with_timeout       = [ ContextType, c_ulong ]
-wait_with_timeout       = Device
+wait_with_timeout           = interceptionDll.interception_wait_with_timeout
+wait_with_timeout.argtypes  = [ ContextType, c_ulong ]
+wait_with_timeout.restype   = Device
 
 send              = interceptionDll.interception_send
 send.argtypes     = [ ContextType, Device, StrokeProto, c_uint ]
@@ -340,7 +340,9 @@ class Context():
             self.stroke = Stroke ( arrayCount = nStroke )
             self.size = nStroke
         if timeout:
-            self.device = wait_with_timeout( self.condext, timeout )
+            self.device = wait_with_timeout( self.context, timeout )
+            if self.device == 0:
+                return -1
         else:
             self.device = wait( self.context )
         result = receive( self.context, self.device, self.stroke, 1 )
